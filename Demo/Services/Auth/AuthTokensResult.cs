@@ -1,8 +1,9 @@
-namespace Demo.Contracts.Auth;
+namespace Demo.Services.Auth;
 
-public sealed record LoginResponse(
+public sealed record AuthTokensResult(
     string AccessToken,
     DateTime AccessTokenExpiresAtUtc,
+    string RefreshToken,
     DateTime RefreshTokenExpiresAtUtc,
     string TokenType,
     IReadOnlyCollection<string> Roles);

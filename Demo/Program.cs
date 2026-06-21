@@ -23,6 +23,7 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTransient<RequestContextMiddleware>();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<RefreshTokenCookieOptions>(builder.Configuration.GetSection(RefreshTokenCookieOptions.SectionName));
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration is missing.");
@@ -114,6 +115,7 @@ if (app.Environment.IsDevelopment())
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         var swaggerUrl = app.Urls
+            .OrderByDescending(url => url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             .Select(url => $"{url.TrimEnd('/')}/swagger")
             .FirstOrDefault();
 

@@ -31,7 +31,7 @@ public sealed class AuthService(
         return new UserProfileResponse(user.Id, user.Username, user.Roles);
     }
 
-    public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<AuthTokensResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var user = await userStore.GetByUsernameAsync(request.Username, cancellationToken)
             ?? throw new UnauthorizedAppException("Invalid username or password.");
@@ -46,9 +46,9 @@ public sealed class AuthService(
         return await IssueTokensAsync(user, replacedToken: null, cancellationToken);
     }
 
-    public async Task<LoginResponse> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<AuthTokensResult> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
     {
-        var presentedTokenHash = ComputeSha256(request.RefreshToken);
+        var presentedTokenHash = ComputeSha256(refreshToken);
         var existingToken = await refreshTokenStore.GetByHashAsync(presentedTokenHash, cancellationToken)
             ?? throw new UnauthorizedAppException("Refresh token is invalid.");
 
@@ -69,9 +69,9 @@ public sealed class AuthService(
         return await IssueTokensAsync(user, existingToken, cancellationToken);
     }
 
-    public async Task RevokeAsync(Guid userId, RevokeRefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task RevokeAsync(Guid userId, string refreshToken, CancellationToken cancellationToken)
     {
-        var tokenHash = ComputeSha256(request.RefreshToken);
+        var tokenHash = ComputeSha256(refreshToken);
         var token = await refreshTokenStore.GetByHashAsync(tokenHash, cancellationToken)
             ?? throw new UnauthorizedAppException("Refresh token is invalid.");
 
@@ -84,7 +84,7 @@ public sealed class AuthService(
         logger.LogInformation("Refresh token revoked for user {UserId}.", userId);
     }
 
-    private async Task<LoginResponse> IssueTokensAsync(
+    private async Task<AuthTokensResult> IssueTokensAsync(
         DemoUser user,
         RefreshTokenRecord? replacedToken,
         CancellationToken cancellationToken)
@@ -116,7 +116,7 @@ public sealed class AuthService(
             await refreshTokenStore.StoreAsync(refreshTokenRecord, cancellationToken);
         }
 
-        return new LoginResponse(
+        return new AuthTokensResult(
             accessToken,
             accessTokenExpiresAtUtc,
             refreshToken,
